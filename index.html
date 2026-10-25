@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Player Pro</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 15px;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+        }
+        /* Màn hình Đăng nhập */
+        #loginScreen h2 {
+            margin-bottom: 20px;
+            text-align: center;
+            color: #ff0000;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #aaa;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+        }
+        .btn {
+            width: 100%;
+            background: #ff0000;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background: #cc0000;
+        }
+
+        /* Giao diện chính sau khi đăng nhập */
+        #appScreen {
+            display: none;
+        }
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2a2a2a;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        .logout-btn {
+            background: #444;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .logout-btn:hover {
+            background: #666;
+        }
+        video, audio {
+            width: 100%;
+            border-radius: 8px;
+            background: #000;
+            max-height: 200px;
+            margin-bottom: 12px;
+        }
+        .file-btn {
+            background: #ff0000;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            display: block;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .volume-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #2a2a2a;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        input[type="range"] {
+            width: 65%;
+            accent-color: #ff0000;
+        }
+        .playlist-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #ccc;
+        }
+        .playlist {
+            max-height: 160px;
+            overflow-y: auto;
+            background: #121212;
+            border-radius: 8px;
+            padding: 5px;
+            border: 1px solid #333;
+        }
+        .playlist-item {
+            padding: 8px 10px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border-radius: 4px;
+        }
+        .playlist-item:hover {
+            background: #2a2a2a;
+        }
+        .playlist-item.active {
+            color: #ff0000;
+            font-weight: bold;
+            background: #2a1a1a;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- MÀN HÌNH ĐĂNG NHẬP -->
+        <div id="loginScreen">
+            <h2>Đăng Nhập Tài Khoản</h2>
+            <div class="input-group">
+                <label>Email của bạn (1 Email = 1 Tài khoản)</label>
+                <input type="email" id="emailInput" placeholder="nhapemail@gmail.com">
+            </div>
+            <button class="btn" onclick="handleLogin()">Đăng Nhập / Tạo Tài Khoản</button>
+        </div>
+
+        <!-- GIAO DIỆN CHÍNH (APP) -->
+        <div id="appScreen">
+            <div class="user-header">
+                <span id="userEmailDisplay"></span>
+                <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
+            </div>
+
+            <label class="file-btn" for="fileInput">📁 Thêm File Nhạc/Video (MP3/MP4)</label>
+            <input type="file" id="fileInput" accept="audio/*,video/*" multiple>
+
+            <video id="mediaPlayer" controls playsinline></video>
+
+            <div class="controls">
+                <div class="volume-control">
+                    <span>Âm lượng (Tối đa 300%):</span>
+                    <span id="volText">100%</span>
+                </div>
+                <input type="range" id="volumeSlider" min="0.1" max="3" step="0.1" value="1">
+            </div>
+
+            <div class="playlist-title">Danh sách phát của bạn:</div>
+            <div class="playlist" id="playlistContainer">
+                <!-- Danh sách nhạc được lưu tự động theo tài khoản -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = localStorage.getItem('media_current_user');
+        let playlist = [];
+        let currentIndex = 0;
+
+        const player = document.getElementById('mediaPlayer');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volText = document.getElementById('volText');
+        const playlistContainer = document.getElementById('playlistContainer');
+
+        let audioCtx, sourceNode, gainNode;
+
+        // Kiểm tra trạng thái đăng nhập khi mở app
+        if (currentUser) {
+            showApp();
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('emailInput').value.trim();
+            if (!email || !email.includes('@')) {
+                alert('Vui lòng nhập địa chỉ email hợp lệ!');
+                return;
+            }
+            currentUser = email;
+            localStorage.setItem('media_current_user', currentUser);
+            showApp();
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('media_current_user');
+            currentUser = null;
+            player.pause();
+            document.getElementById('appScreen').style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'block';
+        }
+
+        function showApp() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appScreen').style.display = 'block';
+            document.getElementById('userEmailDisplay').innerText = currentUser;
+            loadPlaylistFromStorage();
+        }
+
+        // Tải danh sách nhạc riêng của tài khoản từ LocalStorage
+        function loadPlaylistFromStorage() {
+            const saved = localStorage.getItem(`playlist_${currentUser}`);
+            if (saved) {
+                try {
+                    playlist = JSON.parse(saved);
+                } catch(e) {
+                    playlist = [];
+                }
+            } else {
+                playlist = [];
+            }
+            renderPlaylist();
+        }
+
+        // Lưu danh sách nhạc của tài khoản vào LocalStorage
+        function savePlaylistToStorage() {
+            localStorage.setItem(`playlist_${currentUser}`, JSON.stringify(playlist));
+        }
+
+        // Thêm file vào danh sách
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const files = e.target.files;
+            for (let file of files) {
+                const fileURL = URL.createObjectURL(file);
+                playlist.push({ name: file.name, url: fileURL });
+            }
+            savePlaylistToStorage();
+            renderPlaylist();
+            if (playlist.length === files.length) {
+                playTrack(0);
+            }
+        });
+
+        function renderPlaylist() {
+            playlistContainer.innerHTML = '';
+            if (playlist.length === 0) {
+                playlistContainer.innerHTML = '<div style="text-align:center; color:#666; padding:15px; font-size:12px;">Chưa có bài hát nào</div>';
+                return;
+            }
+            playlist.forEach((track, index) => {
+                const div = document.createElement('div');
+                div.className = `playlist-item ${index === currentIndex ? 'active' : ''}`;
+                div.innerText = track.name;
+                div.onclick = () => playTrack(index);
+                playlistContainer.appendChild(div);
+            });
+        }
+
+        function playTrack(index) {
+            if (index < 0 || index >= playlist.length) return;
+            currentIndex = index;
+            const track = playlist[currentIndex];
+            
+            player.src = track.url;
+            player.play();
+            initAudioContext();
+            renderPlaylist();
+
+            // Tích hợp Media Session API (Hiển thị bảng điều khiển ngoài màn hình khóa/thanh thông báo giống YouTube)
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: track.name,
+                    artist: currentUser,
+                    album: 'Media Player Pro'
+                });
+
+                navigator.mediaSession.setActionHandler('play', () => player.play());
+                navigator.mediaSession.setActionHandler('pause', () => player.pause());
+                navigator.mediaSession.setActionHandler('previoustrack', () => playTrack(currentIndex - 1));
+                navigator.mediaSession.setActionHandler('nexttrack', () => playTrack(currentIndex + 1));
+            }
+        }
+
+        // Khi bài hát phát xong tự động chuyển bài tiếp theo
+        player.onended = function() {
+            if (currentIndex + 1 < playlist.length) {
+                playTrack(currentIndex + 1);
+            }
+        };
+
+        // Khởi tạo Web Audio API để tăng âm lượng lên tối đa 300%
+        function initAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+                sourceNode = audioCtx.createMediaElementSource(player);
+                gainNode = audioCtx.createGain();
+                
+                sourceNode.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        volumeSlider.addEventListener('input', function() {
+            initAudioContext();
+            const val = parseFloat(this.value);
+            if (gainNode) {
+                gainNode.gain.value = val; // Tăng âm lượng lên tới 3.0 (300%)
+            }
+            volText.innerText = Math.round(val * 100) + '%';
+        });
+    </script>
+</body>
+</html>
